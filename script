@@ -1,0 +1,69 @@
+import subprocess
+import os
+
+# Function for preprocessing data
+def preprocess_data(input_fastq):
+    # Create output directory for preprocessing results
+    if not os.path.exists("preprocessing_results"):
+        os.makedirs("preprocessing_results")
+    
+    # Run FastQC for quality control
+    subprocess.run(['fastqc', input_fastq, '-o', 'preprocessing_results'])
+
+    # Run Trim Galore for adapter trimming and quality filtering
+    subprocess.run(['trim_galore', '--fastqc', '--output_dir', 'preprocessing_results', input_fastq])
+
+# Function for aligning reads
+def align_reads(input_fastq, reference_genome):
+    # Create output directory for alignment results
+    if not os.path.exists("alignment_results"):
+        os.makedirs("alignment_results")
+    
+    # Run HISAT2 for read alignment
+    subprocess.run(['hisat2', '-x', reference_genome, '-U', input_fastq, '-S', 'alignment_results/aligned_reads.sam'])
+
+# Function for quantifying expression
+def quantify_expression(aligned_sam):
+    # Create output directory for quantification results
+    if not os.path.exists("quantification_results"):
+        os.makedirs("quantification_results")
+    
+    # Run featureCounts for gene expression quantification
+    subprocess.run(['featureCounts', '-a', 'annotation.gtf', '-o', 'quantification_results/expression_counts.txt', aligned_sam])
+
+# Function for quality control
+def quality_control(input_fastq):
+    # Run FastQC again on processed data for quality control
+    subprocess.run(['fastqc', input_fastq, '-o', 'preprocessing_results'])
+
+# Main function
+def main():
+    # Define input FASTQ file
+    input_fastq = 'input_data.fastq'
+    
+    # Define reference genome index
+    reference_genome = 'reference_genome_index'
+    
+    # Step 1: Preprocessing
+    print("Step 1: Preprocessing data...")
+    preprocess_data(input_fastq)
+    print("Preprocessing complete.")
+    
+    # Step 2: Alignment
+    print("\nStep 2: Aligning reads to the reference genome...")
+    align_reads(input_fastq, reference_genome)
+    print("Alignment complete.")
+    
+    # Step 3: Quantification
+    print("\nStep 3: Quantifying expression...")
+    quantify_expression('alignment_results/aligned_reads.sam')
+    print("Quantification complete.")
+    
+    # Step 4: Quality Control
+    print("\nStep 4: Quality control...")
+    quality_control(input_fastq)
+    print("Quality control complete.")
+
+# Entry point of the script
+if __name__ == "__main__":
+    main()  # Call the main function if the script is executed directly
